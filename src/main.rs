@@ -9,9 +9,9 @@ fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 } */
 
-static SUMAHOST: &'static str = "http://suma1.bo2go.home/rpc/api";
-static USER: &str = "bjin01";
-static PWD: &str = "suselinux";
+static SUMAHOST: &'static str = "http://bjsuma.bo2go.home/rpc/api";
+static USER: &str = "bjin";
+static PWD: &str = "suse1234";
 
 fn login() -> String {
     let suma_request = Request::new("auth.login").arg(USER).arg(PWD); 
@@ -176,7 +176,7 @@ fn main() {
         println!("Value for password: {}", i);
     }
 
-    let mut id_list: Vec<i32> = Vec::new();
+    
     let mut server_id_list: Vec<i32> = Vec::new();
     /* let search: Vec<String> = vec!["label".to_string(), "arch_name".to_string(), "packages".to_string()];
     let key = login().unwrap(); 
@@ -188,7 +188,7 @@ fn main() {
 
     //let search: Vec<String> = vec!["id".to_string(), "advisory_synopsis".to_string(), "advisory_name".to_string(), "update_date".to_string()];
     let search: Vec<String> = vec!["id".to_string()];
-    let systems: Vec<String> = vec!["client02.bo2go.home".to_string(), "client01.bo2go.home".to_string()];
+    let systems: Vec<String> = vec!["caasp01.bo2go.home".to_string(), "caasp02.bo2go.home".to_string()];
     let key = login();
 
     for s in systems {        
@@ -204,7 +204,8 @@ fn main() {
     }
 
     if server_id_list.len() > 0 {
-        for i in &server_id_list {          
+        for i in &server_id_list {     
+            let mut id_list: Vec<i32> = Vec::new();     
             let erratalist = Request::new("system.getRelevantErrataByType").arg(String::from(&key)).arg(*i).arg(String::from("Security Advisory"));
             let erratalist_result = erratalist.call_url(SUMAHOST);
             match erratalist_result {
