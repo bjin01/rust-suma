@@ -3,19 +3,47 @@ extern crate chrono;
 //use std::{any::type_name};
 use xmlrpc::{Request, Value};
 use clap::{Arg, App};
-
+use serde::{Serialize, Deserialize};
+use std::io::prelude::*;
+use std::fs::File;
 /* #[allow(dead_code)]
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 } */
 
-static SUMAHOST: &'static str = "http://bjsuma.bo2go.home/rpc/api";
-static USER: &str = "bjin";
-static PWD: &str = "suse1234";
+// static SUMAHOST: &'static str = "http://bjsuma.bo2go.home/rpc/api";
+// static USER: &str = "bjin";
+// static PWD: &str = "suse1234";
 
-fn login() -> String {
-    let suma_request = Request::new("auth.login").arg(USER).arg(PWD); 
-    let request_result = suma_request.call_url(SUMAHOST);
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct SumaInfo {
+    hostname: String,
+    user_name: String,
+    password: String,
+    output_fields: Vec<String>,
+    servers: Vec<String>,
+}
+
+impl SumaInfo {
+    fn new(file: &String) -> SumaInfo {
+        let mut f = File::open(file).expect("Could not read file");
+        let mut buffer = String::new();
+
+        f.read_to_string(&mut buffer).expect("failed to read file into buffer as string.");
+        let deserialized_map: SumaInfo = match serde_yaml::from_str(&buffer) {
+            Ok(i) => i,
+            Err(_) => panic!("getting yaml failed.")
+            
+        };
+        //println!("{:?}", &deserialized_map);
+        return deserialized_map
+    }
+
+}
+
+fn login(s: &SumaInfo) -> String {
+    let suma_request = Request::new("auth.login").arg(String::from(&s.user_name)).arg(String::from(&s.password)); 
+    let request_result = suma_request.call_url(String::from(&s.hostname));
     match &request_result {
         Err(e) => {
             println!("Could not login to SUMA server. {}", e);
@@ -29,9 +57,9 @@ fn login() -> String {
     }
 }
 
-fn logout(k: &String) -> i32 {
+fn logout(k: &String, s: &SumaInfo) -> i32 {
     let suma_logout_request = Request::new("auth.logout").arg(k.to_string());
-    let suma_logout_result = suma_logout_request.call_url(SUMAHOST);
+    let suma_logout_result = suma_logout_request.call_url(String::from(&s.hostname));
     match &suma_logout_result {
         Err(e) => {
             println!("Could not logout. {}", e);
@@ -118,10 +146,10 @@ fn printvalue(x: &Value, s: &Vec<String>, id_list: &mut Vec<i32>) {
 
 
 
-fn get_systemid(key: &String, s: &String) -> Result<i32, &'static str> {
+fn get_systemid(key: &String, s: &String, z: &SumaInfo) -> Result<i32, &'static str> {
 
     let get_system_id = Request::new("system.getId").arg(String::from(key)).arg(s.to_string());
-    let get_system_id_result = get_system_id.call_url(SUMAHOST);
+    let get_system_id_result = get_system_id.call_url(String::from(&z.hostname));
 
     match get_system_id_result.unwrap().as_array() {
         Some(i) => {
@@ -141,7 +169,11 @@ fn get_systemid(key: &String, s: &String) -> Result<i32, &'static str> {
     }
 }
 
-fn main() {
+fn main() -> Result<(), serde_yaml::Error> {
+    let mut suma_info: SumaInfo = SumaInfo::new(&"test.yaml".to_string());
+    suma_info.hostname.insert_str(0, "http://");
+    suma_info.hostname.push_str("/rpc/api");
+    println!("suma host api url: {:?}", &suma_info.hostname);
 
     let matches = App::new("SUMA Get Something")
         .version("1.0")
@@ -187,12 +219,12 @@ fn main() {
     //println!("channel list: {:?}", &channellist_result.unwrap());
 
     //let search: Vec<String> = vec!["id".to_string(), "advisory_synopsis".to_string(), "advisory_name".to_string(), "update_date".to_string()];
-    let search: Vec<String> = vec!["id".to_string()];
-    let systems: Vec<String> = vec!["caasp01.bo2go.home".to_string(), "caasp02.bo2go.home".to_string()];
-    let key = login();
+    // let search: Vec<String> = vec!["id".to_string()];
+    // let systems: Vec<String> = vec!["caasp01.bo2go.home".to_string(), "caasp02.bo2go.home".to_string()];
+    let key = login(&suma_info);
 
-    for s in systems {        
-        let systems_id = get_systemid(&key, &s);
+    for s in &suma_info.servers {        
+        let systems_id = get_systemid(&key, &s, &suma_info);
         match systems_id {
             Err(e) => println!("No server id found for {} - {}", &s, e),
             Ok(i) => {
@@ -207,9 +239,9 @@ fn main() {
         for i in &server_id_list {     
             let mut id_list: Vec<i32> = Vec::new();     
             let erratalist = Request::new("system.getRelevantErrataByType").arg(String::from(&key)).arg(*i).arg(String::from("Security Advisory"));
-            let erratalist_result = erratalist.call_url(SUMAHOST);
+            let erratalist_result = erratalist.call_url(String::from(&suma_info.hostname));
             match erratalist_result {
-                Ok(i) => printvalue(&i, &search, &mut id_list),
+                Ok(i) => printvalue(&i, &suma_info.output_fields, &mut id_list),
                 Err(e) => println!("no errata found: {:?}", e),
             }
 
@@ -218,11 +250,11 @@ fn main() {
                 value_id_list.push(Value::Int(*s));
             }
             let patch_errata = Request::new("system.scheduleApplyErrata").arg(String::from(&key)).arg(*i).arg(Value::Array(value_id_list));
-            let patch_errata_result = patch_errata.call_url(SUMAHOST);
+            let patch_errata_result = patch_errata.call_url(String::from(&suma_info.hostname));
             match patch_errata_result {
                 Ok(s) => {
                     print!("Patch Job ID ");
-                    printvalue(&s, &search, &mut id_list);
+                    printvalue(&s, &suma_info.output_fields, &mut id_list);
                 },
                 Err(e) => println!("no patch job created because the errata list is empty. Maybe your system is up to date.: {:?}", e),
             }
@@ -241,5 +273,6 @@ fn main() {
     //let key = login().unwrap();
     //println!("session key is: {}", &key);
     //let logout_id = logout(&key);
-    println!("Logout successful - {}", logout(&key));
+    println!("Logout successful - {}", logout(&key, &suma_info));
+    Ok(())
 }

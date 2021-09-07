@@ -1,0 +1,12 @@
+hostname: suma1.bo2go.home
+user_name: bjin01
+password: suselinux
+output_fields:
+  - id
+  - advisory_synopsis
+  - advisory_type
+  - date
+servers: 
+  - test1.bo2go.home
+  - test2-bo2go.home
+  - test3-bo2go.home
