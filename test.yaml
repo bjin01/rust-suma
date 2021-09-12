@@ -1,12 +1,11 @@
 hostname: suma1.bo2go.home
 user_name: bjin01
 password: suselinux
+advisory_type:
 output_fields:
   - id
   - advisory_synopsis
   - advisory_type
   - date
 servers: 
-  - test1.bo2go.home
-  - test2-bo2go.home
-  - test3-bo2go.home
+  - client01.bo2go.home
