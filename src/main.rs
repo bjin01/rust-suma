@@ -1,5 +1,6 @@
 extern crate xmlrpc;
-
+extern crate clap;
+use clap::{Arg, App};
 use xmlrpc::{Request, Value};
 use serde::{Serialize, Deserialize};
 use std::io::prelude::*;
@@ -138,7 +139,20 @@ fn get_systemid(key: &String, s: &String, z: &SumaInfo) -> Result<i32, &'static 
 }
 
 fn main() -> Result<(), serde_yaml::Error> {
-    let mut suma_info: SumaInfo = SumaInfo::new(&"test.yaml".to_string());
+
+    let matches = App::new("SUSE Manager - just patch")
+        .version("0.1.0")
+        .author("Bo Jin <bo.jin@suse.com>")
+        .about("patch systems by calling suma xmlrpc api")
+        .arg(Arg::with_name("config")
+                 .short("c")
+                 .long("config")
+                 .takes_value(true)
+                 .help("yaml config file with login"))
+        .get_matches();
+    let yaml_file = matches.value_of("config").unwrap_or("test.yaml");
+
+    let mut suma_info: SumaInfo = SumaInfo::new(&String::from(yaml_file));
     suma_info.hostname.insert_str(0, "http://");
     suma_info.hostname.push_str("/rpc/api");
     println!("suma host api url: {:?}", &suma_info.hostname);

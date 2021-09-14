@@ -1,5 +1,5 @@
 [package]
-name = "suma"
+name = "uysupatch"
 version = "0.1.0"
 edition = "2018"
 
@@ -10,3 +10,5 @@ xmlrpc = "0.15.0"
 openssl = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
+clap = "2.33.3"
+
