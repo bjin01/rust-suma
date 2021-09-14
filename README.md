@@ -5,6 +5,13 @@ The program reads a yaml config file which holds all required login and system i
 
 You can patch systems with all or selected errata type defined in the yaml file.
 
+## Benefits:
+* This command line based tool can run from any linux host. 
+* This binary does not require any further library as it is compiled unless like python scripts.
+* The program is written in rust and bleeding fast.
+* The program uses a given yaml file with api login so that only root user should have read permissions, no need to supply password into command line.
+* Feel free to use it with crontab or in conjunction with 3rd party automation tools.
+
 ## Usage:
 Download the compiled binary to a linux host:
 
